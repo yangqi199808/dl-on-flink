@@ -14,20 +14,21 @@
 # =============================================================================
 
 import os
-import re
-import sys
-import sysconfig
 import platform
+import re
 import subprocess
-from shutil import copyfile, copymode
+import sys
 from distutils.version import LooseVersion
+
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
+
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
+
 
 class CMakeBuild(build_ext):
     def run(self):
@@ -60,7 +61,7 @@ class CMakeBuild(build_ext):
             cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                 cfg.upper(),
                 extdir)]
-            if sys.maxsize > 2**32:
+            if sys.maxsize > 2 ** 32:
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
         else:
@@ -80,6 +81,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args,
                               cwd=self.build_temp)
 
+
 setup(
     name='flink_ml_tensorflow',
     version='0.4.0',
@@ -88,7 +90,11 @@ setup(
     ext_modules=[CMakeExtension('flink_ml_tensorflow/flink_ml_tensorflow')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=['tensorflow==1.15.0', 'tensorboard==1.15.0', 'flink_ml_framework==0.4.0'],
+    install_requires=['tensorflow==1.15.0',
+                      'tensorboard==1.15.0',
+                      'flink_ml_framework==0.4.0',
+                      'apache-flink>=1.14.0, <1.15.0',
+                      'apache-flink-ml==0.1.dev0'],  # TODO: update to release version before merging
     setup_requires=['tensorflow==1.15.0'],
     url='https://github.com/alibaba/flink-ai-extended/',
     license='https://www.apache.org/licenses/LICENSE-2.0'
