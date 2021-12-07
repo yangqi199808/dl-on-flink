@@ -14,9 +14,10 @@
 # =============================================================================
 import os.path
 
-from apache_flink_ml.ml.api.core import Estimator, Model
-from apache_flink_ml.ml.param.param import Param
-from apache_flink_ml.ml.util import read_write_utils
+from pyflink.ml.core.api import Estimator, Model
+from pyflink.ml.core.param import Param
+from pyflink.ml.util import read_write_utils
+
 from flink_ml_tensorflow.tensorflow_TFConfig import TFConfig
 from flink_ml_tensorflow.tensorflow_on_flink_table import train
 from pyflink.common import Row
