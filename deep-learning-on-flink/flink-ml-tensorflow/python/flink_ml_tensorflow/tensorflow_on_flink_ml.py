@@ -13,37 +13,54 @@
 # limitations under the License.
 # =============================================================================
 import os.path
-from typing import List, Dict, Any
 
 from apache_flink_ml.ml.api.core import Estimator, Model
 from apache_flink_ml.ml.param.param import Param
 from apache_flink_ml.ml.util import read_write_utils
+from flink_ml_tensorflow.tensorflow_TFConfig import TFConfig
 from flink_ml_tensorflow.tensorflow_on_flink_table import train
 from pyflink.common import Row
 from pyflink.datastream.stream_execution_environment import \
     StreamExecutionEnvironment
-from pyflink.table import StreamTableEnvironment, StatementSet, FunctionContext, TableFunction
+from pyflink.table import StreamTableEnvironment, StatementSet, FunctionContext, \
+    TableFunction
 from pyflink.table.table import Table
 from pyflink.table.types import DataType
 from pyflink.table.udf import udtf
-
-from flink_ml_tensorflow.tensorflow_TFConfig import TFConfig
+from typing import List, Dict, Any
 
 
 class Tensorflow(Estimator):
 
-    def __init__(self, tf_config: TFConfig, predict_col_names: List[str], predict_data_types: List[DataType]):
+    def __init__(self,
+                 tf_config: TFConfig,
+                 predict_col_names: List[str],
+                 predict_data_types: List[DataType],
+                 table_env: StreamTableEnvironment = None,
+                 statement_set: StatementSet = None):
         self.tf_config = tf_config
         self.predict_data_types = predict_data_types
         self.predict_col_names = predict_col_names
+        self.table_env = table_env
+        self.statement_set = statement_set
 
     def fit(self, *inputs: Table) -> 'TensorflowModel':
-        input = inputs[0]
-        t_env: StreamTableEnvironment = input._t_env
-        statement_set = t_env.create_statement_set()
+        if len(inputs) == 0:
+            if self.table_env is None:
+                raise RuntimeError(
+                    "table_env should not be None if inputs is not given")
+            input_table = None
+            t_env = self.table_env
+        else:
+            input_table = inputs[0]
+            t_env = input_table._t_env
+
+        statement_set = self.statement_set if self.statement_set \
+            else t_env.create_statement_set()
         env = StreamExecutionEnvironment(t_env._j_tenv.execEnv())
-        train(env, t_env, statement_set, input, self.tf_config)
-        return TensorflowModel(self.tf_config, statement_set, self.predict_col_names, self.predict_data_types)
+        train(env, t_env, statement_set, input_table, self.tf_config)
+        return TensorflowModel(self.tf_config, statement_set,
+                               self.predict_col_names, self.predict_data_types)
 
     def save(self, path: str) -> None:
         read_write_utils.save_metadata(self, path, {
@@ -55,7 +72,8 @@ class Tensorflow(Estimator):
     @classmethod
     def load(cls, env: StreamExecutionEnvironment, path: str) -> 'Tensorflow':
         meta = read_write_utils.load_metadata(path)
-        return Tensorflow(meta["tf_config"], meta["predict_col_names"], meta["predict_data_types"])
+        return Tensorflow(meta["tf_config"], meta["predict_col_names"],
+                          meta["predict_data_types"])
 
     def get_param_map(self) -> Dict['Param[Any]', Any]:
         return {}
@@ -75,21 +93,25 @@ class Predict(TableFunction):
 
     def open(self, function_context: FunctionContext):
         import tensorflow as tf
-        self._predictor = tf.contrib.predictor.from_saved_model(self._model_path)
+        self._predictor = tf.contrib.predictor.from_saved_model(
+            self._model_path)
 
     def eval(self, row: Row):
         row_dict = row.as_dict()
         feed_dict = {}
         for feed_tensor_key in self._predictor.feed_tensors.keys():
             if feed_tensor_key not in row_dict:
-                raise RuntimeError("input tensor with key {} is not in the row {}".format(feed_tensor_key, row))
+                raise RuntimeError(
+                    "input tensor with key {} is not in the row {}".format(
+                        feed_tensor_key, row))
             feed_dict[feed_tensor_key] = row_dict[feed_tensor_key]
         predict_dict = self._predictor(feed_dict)
         output_list = []
         for predict_col_name in self._predict_col_names:
             if predict_col_name not in predict_dict:
-                raise RuntimeError("predict column name {} is not in the prediction dict {}"
-                                   .format(predict_col_name, predict_dict))
+                raise RuntimeError(
+                    "predict column name {} is not in the prediction dict {}"
+                        .format(predict_col_name, predict_dict))
             output_list.append(predict_dict[predict_col_name])
         return Row(*row, *output_list)
 
@@ -110,14 +132,17 @@ class TensorflowModel(Model):
 
     def save(self, path: str) -> None:
         self.path = path
-        self.tf_config.java_config().addProperty("model_save_path", os.path.join(self.path, "model_data"))
+        self.tf_config.java_config().addProperty("model_save_path",
+                                                 os.path.join(self.path,
+                                                              "model_data"))
         read_write_utils.save_metadata(self, path, {
             "predict_data_types": self.predict_data_types,
             "predict_col_names": self.predict_col_names
         })
 
     @classmethod
-    def load(cls, env: StreamExecutionEnvironment, path: str) -> 'TensorflowModel':
+    def load(cls, env: StreamExecutionEnvironment,
+             path: str) -> 'TensorflowModel':
         meta = read_write_utils.load_metadata(path)
         model = TensorflowModel()
         model.path = path
@@ -135,7 +160,8 @@ class TensorflowModel(Model):
         field_names = row_data_type.field_names()
 
         table = table.flat_map(
-            udtf(f=Predict(os.path.join(self.path, "model_data"), self.predict_col_names),
+            udtf(f=Predict(os.path.join(self.path, "model_data"),
+                           self.predict_col_names),
                  result_types=field_types + self.predict_data_types))
         table = table.alias(*field_names, *self.predict_col_names)
         return [table]
