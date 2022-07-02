@@ -1,22 +1,19 @@
 #!/bin/bash
-##
-## Licensed to the Apache Software Foundation (ASF) under one
-## or more contributor license agreements.  See the NOTICE file
-## distributed with this work for additional information
-## regarding copyright ownership.  The ASF licenses this file
-## to you under the Apache License, Version 2.0 (the
-## "License"); you may not use this file except in compliance
-## with the License.  You may obtain a copy of the License at
-##
-##   http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing,
-## software distributed under the License is distributed on an
-## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-## KIND, either express or implied.  See the License for the
-## specific language governing permissions and limitations
-## under the License.
-##
+#
+# Copyright 2022 Deep Learning on Flink Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 set -e
 
 virtualenv -p python3 /opt/work_home/temp/test/tfenv
@@ -45,14 +42,14 @@ pip install ${TENSORFLOW}
 #pip install -i https://pypi.doubanio.com/simple torch torchvision
 # pip install torch==1.1.0
 # download torch slow so use aliyun address
-# pip install http://etaose.oss-cn-hangzhou-zmf.aliyuncs.com/test/flink-ml/package/torch-1.0.1.post2-cp27-cp27mu-manylinux1_x86_64.whl
-#pip install http://etaose.oss-cn-hangzhou-zmf.aliyuncs.com/test/flink-ml/package/torch-1.1.0-cp27-cp27mu-manylinux1_x86_64.whl
+# pip install http://etaose.oss-cn-hangzhou-zmf.aliyuncs.com/test/dl-on-flink/package/torch-1.0.1.post2-cp27-cp27mu-manylinux1_x86_64.whl
+#pip install http://etaose.oss-cn-hangzhou-zmf.aliyuncs.com/test/dl-on-flink/package/torch-1.1.0-cp27-cp27mu-manylinux1_x86_64.whl
 pip install torch==1.1.0
 pip install ${TORCH}
 #pip install torchvision==0.3.0
-cd /opt/work_home/flink-ml-framework/python
+cd /opt/work_home/dl-on-flink-framework/python
 pip install .
-cd /opt/work_home/flink-ml-tensorflow/python
+cd /opt/work_home/dl-on-flink-tensorflow/python
 pip install .
 cd /opt/work_home/temp/test
 deactivate

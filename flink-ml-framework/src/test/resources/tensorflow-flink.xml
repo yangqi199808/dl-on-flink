@@ -1,6 +1,0 @@
-<configuration>
-    <property>
-        <name>cross_queue_size</name>
-        <value>8388608</value>
-    </property>
-</configuration>
